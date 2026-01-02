@@ -10,48 +10,60 @@ TOKEN = "8322740481:AAFR4Or9Ly__cdDtMtWXH3NO64_ZLNfYYmg"
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# THÔNG TIN PROXY CỐ ĐỊNH
+# THÔNG TIN PROXY VNPT
 P_HOST = "ipv4-vnpt-01.resvn.net"
 P_PORT = "20973"
 P_USER = "KG6vsZTt"
 P_PASS = "YQlGrmFZYtK7"
 
+# URL API XOAY CỦA NHÀ MẠNG
+ROTATE_API_URL = "https://client.cloudmini.net/api/v2/change_ip?api_key=f1155859bb08c3262ebeff072fbfd196ad3b81eb&id=413714"
+
 @app.route('/')
 def health_check():
-    return "Bot is active and running!", 200
+    return "Bot is running with Auto-Rotate API!", 200
 
 @bot.message_handler(commands=['xoay'])
 def handle_xoay(message):
     try:
-        bot.reply_to(message, "⏳ Đã nhận lệnh. Đang xoay IP và lấy thông tin thành phố (10s)...")
-        time.sleep(10)
+        # BƯỚC 1: GỬI LỆNH XOAY ĐẾN NHÀ MẠNG
+        bot.reply_to(message, "🔌 **Bước 1:** Đang gửi yêu cầu xoay IP tới nhà mạng...")
+        rotate_res = requests.get(ROTATE_API_URL, timeout=15)
+        
+        # BƯỚC 2: ĐỢI 15 GIÂY
+        bot.send_message(message.chat.id, "⏳ **Bước 2:** Yêu cầu đã gửi. Đang đợi 15 giây để hệ thống đổi IP mới...")
+        time.sleep(15)
+
+        # BƯỚC 3: KIỂM TRA VỊ TRÍ QUA PROXY
+        bot.send_message(message.chat.id, "🔍 **Bước 3:** Đang kiểm tra vị trí IP mới...")
         
         proxy_url = f"http://{P_USER}:{P_PASS}@{P_HOST}:{P_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
         
+        # Gọi API lấy vị trí (Sử dụng ip-api.com)
         response = requests.get("http://ip-api.com/json/", proxies=proxies, timeout=20)
         data = response.json()
         
         if data.get('status') == 'success':
-            msg = (f"✅ **XOAY THÀNH CÔNG**\n"
+            msg = (f"✅ **XOAY & CHECK THÀNH CÔNG**\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"🏙 **Thành phố:** {data.get('city')}\n"
                    f"🗺 **Tỉnh/Vùng:** {data.get('regionName')}\n"
                    f"🏢 **Nhà mạng:** {data.get('isp')}\n"
-                   f"🌐 **IP Hiện tại:** `{data.get('query')}`\n"
+                   f"🌐 **IP Mới:** `{data.get('query')}`\n"
                    f"━━━━━━━━━━━━━━━")
         else:
-            msg = "❌ Proxy LIVE nhưng không lấy được dữ liệu vị trí."
-        bot.reply_to(message, msg, parse_mode='Markdown')
+            msg = "❌ Đã xoay nhưng không lấy được dữ liệu IP (Proxy có thể đang khởi động lại)."
+        
+        bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+
     except Exception as e:
-        bot.reply_to(message, f"❌ Lỗi: {str(e)}")
+        bot.reply_to(message, f"❌ **LỖI HỆ THỐNG**\n`{str(e)}`")
 
 def run_polling():
-    # Xóa Webhook cũ để tránh xung đột
     bot.remove_webhook()
-    time.sleep(1) # Đợi 1 giây để Telegram cập nhật trạng thái
+    time.sleep(1)
     print("Bot is starting polling...")
-    # skip_pending=True giúp tránh lỗi 409 khi khởi động lại liên tục
     bot.infinity_polling(skip_pending=True)
 
 if __name__ == "__main__":
