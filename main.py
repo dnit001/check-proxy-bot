@@ -5,12 +5,12 @@ import time
 import threading
 from flask import Flask
 
-# --- CẤU HÌNH ---
+# --- CẤU HÌNH BOT ---
 TOKEN = "8322740481:AAFR4Or9Ly__cdDtMtWXH3NO64_ZLNfYYmg"
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# PROXY VNPT CỐ ĐỊNH
+# THÔNG TIN PROXY CỐ ĐỊNH
 P_HOST = "ipv4-vnpt-01.resvn.net"
 P_PORT = "20973"
 P_USER = "KG6vsZTt"
@@ -18,7 +18,7 @@ P_PASS = "YQlGrmFZYtK7"
 
 @app.route('/')
 def health_check():
-    return "Bot VNPT is Active!", 200
+    return "Bot is active and running!", 200
 
 @bot.message_handler(commands=['xoay'])
 def handle_xoay(message):
@@ -47,10 +47,12 @@ def handle_xoay(message):
         bot.reply_to(message, f"❌ Lỗi: {str(e)}")
 
 def run_polling():
-    # Xóa sạch Webhook cũ để chạy Polling
+    # Xóa Webhook cũ để tránh xung đột
     bot.remove_webhook()
-    print("Bot is polling...")
-    bot.infinity_polling()
+    time.sleep(1) # Đợi 1 giây để Telegram cập nhật trạng thái
+    print("Bot is starting polling...")
+    # skip_pending=True giúp tránh lỗi 409 khi khởi động lại liên tục
+    bot.infinity_polling(skip_pending=True)
 
 if __name__ == "__main__":
     # Chạy Bot trong luồng riêng
