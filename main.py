@@ -31,8 +31,8 @@ def handle_xoay(message):
         rotate_res = requests.get(ROTATE_API_URL, timeout=15)
         
         # BƯỚC 2: ĐỢI 15 GIÂY
-        bot.send_message(message.chat.id, "⏳ Đang đợi 15 giây để hệ thống đổi IP mới...")
-        time.sleep(15)
+        bot.send_message(message.chat.id, "⏳ Đang đợi 30 giây để hệ thống đổi IP mới...")
+        time.sleep(30)
 
         # BƯỚC 3: KIỂM TRA VỊ TRÍ QUA PROXY
         bot.send_message(message.chat.id, "🔍 Đang kiểm tra vị trí IP mới...")
