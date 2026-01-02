@@ -27,15 +27,15 @@ def health_check():
 def handle_xoay(message):
     try:
         # BƯỚC 1: GỬI LỆNH XOAY ĐẾN NHÀ MẠNG
-        bot.reply_to(message, "🔌 **Bước 1:** Đang gửi yêu cầu xoay IP tới nhà mạng...")
+        bot.reply_to(message, "🔄 Đang gửi yêu cầu xoay IP tới nhà mạng VN Cloud Mini...")
         rotate_res = requests.get(ROTATE_API_URL, timeout=15)
         
         # BƯỚC 2: ĐỢI 15 GIÂY
-        bot.send_message(message.chat.id, "⏳ **Bước 2:** Yêu cầu đã gửi. Đang đợi 15 giây để hệ thống đổi IP mới...")
+        bot.send_message(message.chat.id, "⏳ Đang đợi 15 giây để hệ thống đổi IP mới...")
         time.sleep(15)
 
         # BƯỚC 3: KIỂM TRA VỊ TRÍ QUA PROXY
-        bot.send_message(message.chat.id, "🔍 **Bước 3:** Đang kiểm tra vị trí IP mới...")
+        bot.send_message(message.chat.id, "🔍 Đang kiểm tra vị trí IP mới...")
         
         proxy_url = f"http://{P_USER}:{P_PASS}@{P_HOST}:{P_PORT}"
         proxies = {"http": proxy_url, "https": proxy_url}
