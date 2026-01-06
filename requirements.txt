@@ -1,4 +1,5 @@
 pyTelegramBotAPI
 requests[socks]
 flask
-gunicorn
+beautifulsoup4
+lxml
