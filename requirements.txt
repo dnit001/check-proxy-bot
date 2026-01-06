@@ -1,5 +1,6 @@
-requests[socks]
 pyTelegramBotAPI
+requests[socks]
 flask
 beautifulsoup4
 lxml
+cloudscraper
