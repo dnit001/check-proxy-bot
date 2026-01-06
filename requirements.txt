@@ -3,4 +3,4 @@ requests[socks]
 flask
 beautifulsoup4
 lxml
-cloudscraper
+curl_cffi
