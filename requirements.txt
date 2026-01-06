@@ -1,5 +1,5 @@
-pyTelegramBotAPI
 requests[socks]
+pyTelegramBotAPI
 flask
 beautifulsoup4
 lxml
