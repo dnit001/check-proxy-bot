@@ -1,6 +1,6 @@
 import os
 import telebot
-import requests
+import cloudscraper
 import time
 import threading
 from flask import Flask
@@ -19,34 +19,36 @@ proxies = {
     "https": SOCKS5_URL
 }
 
-# URL API XOAY NHÀ MẠNG
-ROTATE_API_URL = "https://client.cloudmini.net/api/v2/change_ip?api_key=f1155859bb08c3262ebeff072fbfd196ad3b81eb&id=413714"
-
 @app.route('/')
 def health_check():
-    return "Bot is running with Mobilehop SOCKS5!", 200
+    return "Bot is running with Cloudscraper!", 200
 
-# --- LỆNH CHECK ETSY ---
 @bot.message_handler(commands=['checketsy'])
 def handle_check_etsy(message):
     try:
         url = "https://www.etsy.com/shop/boongke/?etsrc=sdt"
-        # ĐÃ ĐỔI CÂU TRẢ LỜI TẠI ĐÂY
-        bot.reply_to(message, "🔍 Đang truy cập Etsy qua Mobilehop SOCKS5...")
+        bot.reply_to(message, "🛡️ Đang sử dụng Cloudscraper để vượt tường lửa Etsy...")
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.google.com/"
-        }
+        # Khởi tạo scraper giả lập trình duyệt Desktop (Chrome)
+        scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'desktop': True
+            }
+        )
 
-        response = requests.get(url, proxies=proxies, headers=headers, timeout=30)
+        # Gửi request qua SOCKS5 bằng cloudscraper
+        response = scraper.get(url, proxies=proxies, timeout=30)
         
-        if response.status_code != 200:
-            bot.reply_to(message, f"❌ Lỗi HTTP: {response.status_code} (Mobilehop IP có thể bị Etsy chặn)")
+        if response.status_code == 403:
+            bot.reply_to(message, "⚠️ Vẫn bị lỗi 403. Etsy đã chặn dải IP của Mobilehop hoặc nhận diện Fingerprint SSL.")
+            return
+        elif response.status_code != 200:
+            bot.reply_to(message, f"❌ Lỗi HTTP: {response.status_code}")
             return
 
+        # Parse dữ liệu
         soup = BeautifulSoup(response.content, "html.parser")
         dom = etree.HTML(str(soup))
 
@@ -59,12 +61,13 @@ def handle_check_etsy(message):
                 return result[0].text.strip() if hasattr(result[0], 'text') and result[0].text else str(result[0]).strip()
             return "N/A"
 
+        # Lấy các thông số bạn yêu cầu
         data_1 = get_by_xpath('//*[@id="shop-home-header"]/div/div[2]/div[1]/div[2]/div[3]/div[2]/div/div[3]/div/div[1]')
         data_2 = get_by_xpath('//*[@id="shop-home-header"]/div/div[2]/div[1]/div[2]/div[3]/div[2]/div/div[5]')
         data_3 = get_by_xpath('//*[@id="shop-home-header"]/div/div[2]/div[1]/div[2]/div[3]/div[2]/div/div[1]/div/div')
 
         res_msg = (
-            f"🏪 **ETSY SHOP INFO (Mobilehop)**\n"
+            f"🏪 **ETSY SHOP INFO**\n"
             f"━━━━━━━━━━━━━━━\n"
             f"🏷 **Shop Name:** {shop_name}\n"
             f"📊 **Data 1:** {data_1}\n"
@@ -77,25 +80,20 @@ def handle_check_etsy(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Lỗi: {str(e)}")
 
-# --- LỆNH XOAY IP ---
+# --- GIỮ NGUYÊN LỆNH /XOAY VÀ START POLLING ---
 @bot.message_handler(commands=['xoay'])
 def handle_xoay(message):
     try:
-        # Cập nhật thông báo xoay
-        bot.reply_to(message, "🔌 Đang gửi lệnh xoay IP tới CloudMini...")
-        requests.get(ROTATE_API_URL, timeout=15)
-        bot.send_message(message.chat.id, "⏳ Đợi 20 giây để Mobilehop cập nhật IP mới...")
+        bot.reply_to(message, "🔌 Đang gửi lệnh xoay IP...")
+        import requests
+        requests.get("https://client.cloudmini.net/api/v2/change_ip?api_key=f1155859bb08c3262ebeff072fbfd196ad3b81eb&id=413714", timeout=15)
+        bot.send_message(message.chat.id, "⏳ Đợi 20s để IP cập nhật...")
         time.sleep(20)
-        
-        response = requests.get("http://ip-api.com/json/", proxies=proxies, timeout=20)
-        data = response.json()
-        if data.get('status') == 'success':
-            msg = (f"✅ **XOAY MOBILEHOP THÀNH CÔNG**\n"
-                   f"🏙 Thành phố: {data.get('city')}\n"
-                   f"🌐 IP Mới: `{data.get('query')}`")
-            bot.send_message(message.chat.id, msg, parse_mode='Markdown')
+        res = requests.get("http://ip-api.com/json/", proxies=proxies, timeout=20)
+        data = res.json()
+        bot.send_message(message.chat.id, f"✅ IP Mới: `{data.get('query')}`")
     except Exception as e:
-        bot.reply_to(message, f"❌ Lỗi xoay IP: {str(e)}")
+        bot.reply_to(message, f"❌ Lỗi: {str(e)}")
 
 def run_polling():
     bot.remove_webhook()
@@ -103,5 +101,4 @@ def run_polling():
 
 if __name__ == "__main__":
     threading.Thread(target=run_polling, daemon=True).start()
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
